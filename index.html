@@ -1,0 +1,1117 @@
+<!DOCTYPE html>
+<html lang="pt-BR" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Plataforma de Cotações AI - Magnum Tires</title>
+
+  <!-- TAILWIND CSS & FONT AWESOME -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,400;0,600;0,700;0,800;0,900;1,800;1,900&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+            brand: ['"Montserrat"', 'sans-serif'],
+          },
+          colors: {
+            magnum: {
+              red: '#e11d48',
+              redDark: '#9f1239',
+              bg: '#0a0a0c',
+              card: '#121216',
+              border: '#27272a'
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    body {
+      background: radial-gradient(circle at center, #18181b 0%, #09090b 100%);
+      color: #f4f4f5;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+    }
+    
+    .glass-card {
+      background: rgba(18, 18, 22, 0.85);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
+    }
+
+    .glow-red {
+      box-shadow: 0 0 25px -3px rgba(225, 29, 72, 0.5);
+    }
+
+    .side-tab-btn {
+      transition: all 0.2s ease;
+      width: 100%;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.65rem 0.85rem;
+      border-radius: 0.6rem;
+      font-weight: 600;
+      font-size: 0.75rem;
+    }
+    .side-tab-active {
+      background: linear-gradient(135deg, #e11d48 0%, #9f1239 100%);
+      color: #ffffff !important;
+      box-shadow: 0 4px 15px rgba(225, 29, 72, 0.4);
+    }
+    .side-tab-inactive {
+      color: #a1a1aa;
+    }
+    .side-tab-inactive:hover {
+      color: #ffffff;
+      background: rgba(255, 255, 255, 0.05);
+    }
+
+    .tbl-input {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 6px;
+      color: #ffffff;
+      padding: 3px 6px;
+      width: 100%;
+      font-size: 11px;
+      transition: all 0.15s ease;
+    }
+    .tbl-input:focus {
+      outline: none;
+      border-color: #e11d48;
+      background: rgba(225, 29, 72, 0.15);
+    }
+    .tbl-input-num {
+      text-align: right;
+    }
+
+    input::-webkit-outer-spin-button,
+    input::-webkit-inner-spin-button {
+      -webkit-appearance: none;
+      margin: 0;
+    }
+    input[type=number] {
+      -moz-appearance: textfield;
+    }
+
+    .winner-cell {
+      background-color: rgba(16, 185, 129, 0.2) !important;
+      color: #34d399 !important;
+      font-weight: 800 !important;
+    }
+
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: #09090b; }
+    ::-webkit-scrollbar-thumb { background: #27272a; border-radius: 9999px; }
+    ::-webkit-scrollbar-thumb:hover { background: #e11d48; }
+
+    @media print {
+      body { background: white !important; color: black !important; }
+      aside, header, button, .no-print { display: none !important; }
+      .glass-card { background: none !important; border: none !important; box-shadow: none !important; }
+      table { border: 1px solid #000 !important; }
+      th, td { border: 1px solid #ccc !important; color: black !important; }
+    }
+  </style>
+</head>
+<body class="min-h-screen flex text-xs antialiased overflow-x-hidden" onclick="fecharDropdownPeloClickFora(event)">
+
+  <!-- MODAL DE CONFIGURAÇÃO DE WEBHOOK DO DRIVE -->
+  <div id="modal-config-drive" class="hidden fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <div class="glass-card max-w-md w-full p-6 rounded-2xl border border-white/10 space-y-4 relative">
+      <button onclick="fecharModalDrive()" class="absolute top-4 right-4 text-slate-400 hover:text-white">
+        <i class="fa-solid fa-xmark text-base"></i>
+      </button>
+      <div class="space-y-1">
+        <h2 class="text-base font-extrabold text-white flex items-center gap-2">
+          <i class="fa-brands fa-google-drive text-emerald-400"></i> Integrar com Google Drive
+        </h2>
+        <p class="text-[11px] text-slate-400">Insira a URL do seu Webhook (Make, Google Apps Script ou n8n) para salvar automaticamente os relatórios e anexos na sua pasta do Drive.</p>
+      </div>
+
+      <div class="space-y-3">
+        <div>
+          <label class="block text-slate-300 font-bold text-[11px] mb-1">URL do Webhook / Script:</label>
+          <input type="url" id="input-webhook-url" placeholder="https://script.google.com/macros/s/.../exec" class="w-full bg-zinc-900 border border-white/20 text-white rounded-lg px-3 py-1.5 text-xs focus:outline-none focus:border-emerald-400">
+        </div>
+      </div>
+
+      <div class="flex justify-end space-x-2 pt-2">
+        <button onclick="fecharModalDrive()" class="px-3 py-1.5 rounded-lg text-slate-400 hover:text-white text-xs font-semibold">
+          Cancelar
+        </button>
+        <button onclick="salvarWebhookUrl()" class="bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-1.5 rounded-lg text-xs font-bold transition">
+          Salvar Integração
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL DE NOVA COTAÇÃO -->
+  <div id="modal-nova-cotacao" class="hidden fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <div class="glass-card max-w-lg w-full p-6 rounded-2xl border border-white/10 space-y-4 relative">
+      <button onclick="fecharModalNovaCotacao()" class="absolute top-4 right-4 text-slate-400 hover:text-white">
+        <i class="fa-solid fa-xmark text-base"></i>
+      </button>
+      <div class="space-y-1">
+        <h2 class="text-base font-extrabold text-white flex items-center gap-2">
+          <i class="fa-solid fa-folder-plus text-magnum-red"></i> Criar Nova Cotação
+        </h2>
+        <p class="text-[11px] text-slate-400">Defina os detalhes da nova cotação para organizar seus orçamentos.</p>
+      </div>
+
+      <div class="space-y-3">
+        <div>
+          <label class="block text-slate-300 font-bold text-[11px] mb-1">Nome / Título da Cotação:</label>
+          <input type="text" id="input-nome-cotacao" placeholder="Ex: Compra de Pneus Frota Sul" class="w-full bg-zinc-900 border border-white/20 text-white rounded-lg px-3 py-1.5 text-xs focus:outline-none focus:border-magnum-red">
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-slate-300 font-bold text-[11px] mb-1">Setor / Solicitante:</label>
+            <input type="text" id="input-setor-cotacao" placeholder="Ex: Almoxarifado Central" class="w-full bg-zinc-900 border border-white/20 text-white rounded-lg px-3 py-1.5 text-xs focus:outline-none focus:border-magnum-red">
+          </div>
+          <div>
+            <label class="block text-slate-300 font-bold text-[11px] mb-1">Centro de Custo:</label>
+            <input type="text" id="input-ccusto-cotacao" placeholder="Ex: CC-1020" class="w-full bg-zinc-900 border border-white/20 text-white rounded-lg px-3 py-1.5 text-xs focus:outline-none focus:border-magnum-red">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-slate-300 font-bold text-[11px] mb-1">Data da Solicitação:</label>
+            <input type="date" id="input-data-cotacao" class="w-full bg-zinc-900 border border-white/20 text-white rounded-lg px-3 py-1.5 text-xs focus:outline-none focus:border-magnum-red">
+          </div>
+          <div>
+            <label class="block text-slate-300 font-bold text-[11px] mb-1">Endereço de Entrega:</label>
+            <input type="text" id="input-endereco-cotacao" placeholder="Ex: Matriz Recife - BR-101" class="w-full bg-zinc-900 border border-white/20 text-white rounded-lg px-3 py-1.5 text-xs focus:outline-none focus:border-magnum-red">
+          </div>
+        </div>
+      </div>
+
+      <div class="flex justify-end space-x-2 pt-2">
+        <button onclick="fecharModalNovaCotacao()" class="px-3 py-1.5 rounded-lg text-slate-400 hover:text-white text-xs font-semibold">
+          Cancelar
+        </button>
+        <button onclick="confirmarNovaCotacao()" class="bg-gradient-to-r from-magnum-red to-red-700 hover:opacity-90 text-white px-4 py-1.5 rounded-lg text-xs font-bold glow-red">
+          Criar Cotação
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- SIDEBAR LATERAL -->
+  <aside class="w-16 lg:w-60 border-r border-white/10 bg-[#0c0c0e] flex flex-col justify-between p-3.5 flex-shrink-0 z-20">
+    <div class="space-y-6">
+      <div class="flex items-center space-x-3 px-1 py-1">
+        <div class="w-10 h-10 flex-shrink-0 flex items-center justify-center">
+          <svg viewBox="0 0 100 100" class="w-full h-full filter drop-shadow-[0_0_8px_rgba(225,29,72,0.6)]">
+            <path d="M 20 80 C 15 50 40 20 80 20 C 50 25 30 45 30 80 Z" fill="#e11d48" />
+            <path d="M 35 80 C 30 60 50 35 85 35 C 60 40 45 55 45 80 Z" fill="#be123c" />
+            <path d="M 50 80 C 48 70 60 50 90 50 C 70 55 60 65 60 80 Z" fill="#881337" />
+          </svg>
+        </div>
+        <div class="hidden lg:block font-brand leading-none">
+          <span class="font-black text-sm tracking-tighter text-white italic block">MAGNUM</span>
+          <span class="font-bold text-[10px] tracking-[0.25em] text-slate-400 block IU-0.5">TIRES</span>
+        </div>
+      </div>
+
+      <nav class="space-y-1.5">
+        <button onclick="trocarAba('cotacoes')" id="tab-cotacoes" class="side-tab-btn side-tab-active">
+          <i class="fa-solid fa-chart-simple text-sm"></i>
+          <span class="hidden lg:inline">Cotações</span>
+        </button>
+
+        <button onclick="trocarAba('visao-pessoal')" id="tab-visao-pessoal" class="side-tab-btn side-tab-inactive">
+          <i class="fa-regular fa-user text-sm"></i>
+          <span class="hidden lg:inline">Visão Pessoal</span>
+        </button>
+
+        <button onclick="trocarAba('historico')" id="tab-historico" class="side-tab-btn side-tab-inactive">
+          <i class="fa-regular fa-clock text-sm"></i>
+          <span class="hidden lg:inline">Histórico</span>
+        </button>
+
+        <button onclick="trocarAba('formularios')" id="tab-formularios" class="side-tab-btn side-tab-inactive">
+          <i class="fa-regular fa-file-lines text-sm"></i>
+          <span class="hidden lg:inline">Formulários</span>
+        </button>
+      </nav>
+    </div>
+
+    <div class="hidden lg:block glass-card p-3 rounded-xl border-white/10 text-[10px]">
+      <div class="flex items-center space-x-2 mb-1">
+        <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+        <span class="font-bold text-white uppercase tracking-wider">Modo Prototipagem</span>
+      </div>
+      <p class="text-slate-400">Banco de Dados em memória local (`localStorage`).</p>
+    </div>
+  </aside>
+
+  <!-- ÁREA PRINCIPAL -->
+  <div class="flex-grow flex flex-col min-w-0 h-screen overflow-y-auto">
+    
+    <!-- TOPBAR COM SELEÇÃO DE COTAÇÃO -->
+    <header class="border-b border-white/10 px-6 py-3 flex items-center justify-between bg-[#0a0a0c]/90 backdrop-blur-md sticky top-0 z-30">
+      
+      <div class="flex items-center space-x-3">
+        <!-- SELETOR DE COTAÇÃO ATIVA -->
+        <div class="flex items-center space-x-2">
+          <span class="text-slate-400 font-bold text-xs hidden sm:inline"><i class="fa-solid fa-folder-open text-magnum-red mr-1"></i> Cotação:</span>
+          <select id="seletor-cotacao" onchange="selecionarCotacao(this.value)" class="bg-zinc-900 border border-white/20 text-white rounded-lg px-2.5 py-1 text-xs focus:outline-none focus:border-magnum-red font-semibold">
+            <!-- Opções geradas via JS -->
+          </select>
+        </div>
+
+        <button onclick="excluirCotacaoAtual()" title="Excluir Cotação Selecionada" class="bg-red-950/40 hover:bg-red-900/60 border border-red-500/30 text-red-400 p-1.5 rounded-lg text-xs transition flex items-center justify-center">
+          <i class="fa-solid fa-trash-can"></i>
+        </button>
+
+        <button onclick="abrirModalNovaCotacao()" class="bg-emerald-600/20 border border-emerald-500/40 text-emerald-400 hover:bg-emerald-600/30 px-2.5 py-1 rounded-lg text-xs font-bold transition flex items-center gap-1.5">
+          <i class="fa-solid fa-plus text-xs"></i>
+          <span>Nova Cotação</span>
+        </button>
+      </div>
+
+      <div class="hidden md:flex items-center space-x-2 font-brand italic">
+        <span class="font-extrabold text-xs text-white tracking-wider">MAGNUM TIRES</span>
+        <span class="text-[10px] text-magnum-red font-sans font-bold bg-magnum-red/10 border border-magnum-red/30 px-2 py-0.5 rounded-full not-italic">SISTEMA COMPRAS</span>
+      </div>
+
+      <div class="flex items-center space-x-3">
+        <div class="relative">
+          <button onclick="togglePerfilDropdown(event)" class="w-8 h-8 rounded-lg bg-gradient-to-tr from-magnum-red to-red-500 p-[1px] focus:outline-none">
+            <div class="w-full h-full bg-zinc-900 rounded-[7px] flex items-center justify-center text-white font-black text-[10px]">
+              IU
+            </div>
+          </button>
+
+          <div id="perfil-dropdown" class="hidden absolute right-0 IU-2 w-56 glass-card rounded-xl border border-white/10 p-2 shadow-2xl z-50">
+            <div class="px-3 py-2 border-b border-white/10 mb-1">
+              <span class="text-white font-bold block text-xs">Magnum Tires (Prototipagem)</span>
+              <span class="text-[10px] text-slate-400 block truncate">compras@magnumtires.com.br</span>
+            </div>
+            <button onclick="abrirModalDrive()" class="w-full text-left px-2.5 py-1.5 rounded-lg text-emerald-400 hover:bg-emerald-500/10 flex items-center space-x-2 text-[11px]">
+              <i class="fa-brands fa-google-drive"></i>
+              <span>Configurar Webhook Drive</span>
+            </button>
+            <button onclick="resetarBancoDados()" class="w-full text-left px-2.5 py-1.5 rounded-lg text-red-400 hover:bg-red-500/10 flex items-center space-x-2 text-[11px]">
+              <i class="fa-solid fa-rotate-right"></i>
+              <span>Restaurar Dados Iniciais</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- MAIN GRID -->
+    <main class="p-4 lg:p-6 space-y-4 max-w-[1700px] mx-auto w-full flex-grow">
+
+      <!-- ABA 1: COTAÇÕES -->
+      <div id="conteudo-cotacoes" class="aba-conteudo space-y-4">
+        
+        <!-- CABEÇALHO DETALHADO DA COTAÇÃO -->
+        <div class="glass-card p-4 rounded-2xl border-l-4 border-l-magnum-red space-y-3">
+          <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 border-b border-white/10 pb-3">
+            <div class="flex items-center space-x-2 w-full sm:w-auto">
+              <input type="text" id="cotacao-titulo" oninput="atualizarDadosCotacao('titulo', this.value)" class="bg-transparent text-base font-extrabold text-white border-b border-transparent hover:border-white/20 focus:border-magnum-red focus:outline-none w-full sm:w-auto">
+            </div>
+
+            <!-- BOTÕES DE AÇÃO: EXPORTAR E ENVIAR PARA DRIVE -->
+            <div class="flex items-center space-x-2 flex-shrink-0 flex-wrap gap-y-2">
+              <button onclick="exportarRelatorioPDF()" class="bg-zinc-800 hover:bg-zinc-700 text-slate-200 px-3 py-1.5 rounded-lg text-xs font-semibold border border-white/10 flex items-center space-x-1.5 transition">
+                <i class="fa-solid fa-file-pdf text-red-400"></i>
+                <span>Imprimir / PDF</span>
+              </button>
+
+              <button onclick="enviarParaDrive()" class="bg-emerald-700/80 hover:bg-emerald-600 text-white px-3 py-1.5 rounded-lg text-xs font-bold border border-emerald-500/30 flex items-center space-x-1.5 transition shadow-lg">
+                <i class="fa-brands fa-google-drive"></i>
+                <span>Enviar p/ Drive</span>
+              </button>
+
+              <button onclick="adicionarLinhaItem()" class="bg-zinc-800 hover:bg-zinc-700 text-white px-3 py-1.5 rounded-lg text-xs font-semibold border border-white/10 flex items-center space-x-1.5 transition">
+                <i class="fa-solid fa-plus text-magnum-red"></i>
+                <span>Adicionar Item</span>
+              </button>
+
+              <button onclick="salvarNoStorage(); alert('Cotação salva com sucesso localmente!')" class="bg-gradient-to-r from-magnum-red to-red-700 hover:opacity-90 text-white px-4 py-1.5 rounded-lg text-xs font-bold glow-red flex items-center space-x-1.5">
+                <i class="fa-solid fa-floppy-disk"></i>
+                <span>Salvar</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- GRID DOS CAMPOS EDITÁVEIS -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-[11px]">
+            <div class="bg-white/5 p-2 rounded-xl border border-white/5 space-y-1">
+              <span class="text-slate-400 font-bold block text-[10px] uppercase tracking-wider">
+                <i class="fa-solid fa-building text-magnum-red mr-1"></i> Setor / Solicitante
+              </span>
+              <input type="text" id="cotacao-setor" oninput="atualizarDadosCotacao('setor', this.value)" placeholder="Informe o setor" class="w-full bg-transparent text-white font-medium focus:outline-none border-b border-transparent focus:border-magnum-red">
+            </div>
+
+            <div class="bg-white/5 p-2 rounded-xl border border-white/5 space-y-1">
+              <span class="text-slate-400 font-bold block text-[10px] uppercase tracking-wider">
+                <i class="fa-solid fa-calculator text-magnum-red mr-1"></i> Centro de Custo
+              </span>
+              <input type="text" id="cotacao-ccusto" oninput="atualizarDadosCotacao('centroCusto', this.value)" placeholder="Ex: CC-1020" class="w-full bg-transparent text-white font-medium focus:outline-none border-b border-transparent focus:border-magnum-red">
+            </div>
+
+            <div class="bg-white/5 p-2 rounded-xl border border-white/5 space-y-1">
+              <span class="text-slate-400 font-bold block text-[10px] uppercase tracking-wider">
+                <i class="fa-solid fa-calendar-days text-magnum-red mr-1"></i> Data da Solicitação
+              </span>
+              <input type="date" id="cotacao-data" oninput="atualizarDadosCotacao('data', this.value)" class="w-full bg-transparent text-white font-medium focus:outline-none border-b border-transparent focus:border-magnum-red">
+            </div>
+
+            <div class="bg-white/5 p-2 rounded-xl border border-white/5 space-y-1">
+              <span class="text-slate-400 font-bold block text-[10px] uppercase tracking-wider">
+                <i class="fa-solid fa-location-dot text-magnum-red mr-1"></i> Endereço de Entrega
+              </span>
+              <input type="text" id="cotacao-endereco" oninput="atualizarDadosCotacao('enderecoEntrega', this.value)" placeholder="Endereço de destino" class="w-full bg-transparent text-white font-medium focus:outline-none border-b border-transparent focus:border-magnum-red">
+            </div>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
+          
+          <!-- COLUNA ESQUERDA -->
+          <div class="lg:col-span-4 space-y-4">
+            
+            <div class="glass-card p-4 rounded-2xl border-dashed border-2 border-white/20 hover:border-magnum-red/60 transition text-center cursor-pointer group">
+              <input type="file" id="pdf-upload" class="hidden" accept=".pdf,image/*" onchange="adicionarArquivoUpload(event)">
+              <label for="pdf-upload" class="cursor-pointer block space-y-2">
+                <div class="w-10 h-10 rounded-full bg-magnum-red/10 border border-magnum-red/30 text-magnum-red flex items-center justify-center mx-auto group-hover:scale-110 transition">
+                  <i class="fa-solid fa-file-arrow-up text-base"></i>
+                </div>
+                <div>
+                  <span class="font-bold text-white block text-xs">Importar Proposta em PDF</span>
+                  <span class="text-[10px] text-slate-400 block">Adiciona documento a esta cotação</span>
+                </div>
+                <span class="inline-block bg-white/10 hover:bg-white/20 text-slate-200 px-3 py-1 rounded-md text-[10px] font-semibold transition">
+                  Selecionar Arquivo
+                </span>
+              </label>
+            </div>
+
+            <!-- LISTA DE DOCUMENTOS PROCESSADOS -->
+            <div class="glass-card p-4 rounded-2xl space-y-3">
+              <div class="flex justify-between items-center border-b border-white/10 pb-2">
+                <span class="font-bold text-white text-xs flex items-center gap-1.5">
+                  <i class="fa-solid fa-paperclip text-magnum-red"></i> Documentos Processados
+                </span>
+                <span class="text-[10px] text-slate-400" id="qtd-arquivos-label">0 Arquivos</span>
+              </div>
+
+              <div class="space-y-2" id="lista-arquivos">
+              </div>
+            </div>
+
+            <div class="glass-card p-4 rounded-2xl space-y-2 border-l-4 border-l-magnum-red">
+              <span class="font-bold text-white text-xs flex items-center gap-1.5">
+                <i class="fa-solid fa-brain text-magnum-red"></i> Insight Magnum AI
+              </span>
+              <p class="text-[11px] text-slate-300 leading-relaxed" id="ai-insight-text">
+                Selecione ou edite os dados para recalcular o melhor fornecedor.
+              </p>
+            </div>
+
+          </div>
+
+          <!-- COLUNA DIREITA -->
+          <div class="lg:col-span-8">
+            <section class="glass-card rounded-2xl overflow-hidden border border-white/10">
+              
+              <div class="bg-gradient-to-r from-magnum-red via-red-700 to-zinc-900 p-3 text-white flex justify-between items-center border-b border-white/10">
+                <div class="flex items-center space-x-2">
+                  <span class="bg-black/50 px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider text-magnum-red border border-magnum-red/30">MAGNUM TIRES</span>
+                  <span class="text-xs font-extrabold uppercase tracking-wide">MAPA COMPARATIVO DE PREÇO</span>
+                </div>
+                <span class="text-[10px] bg-white/10 px-2 py-0.5 rounded text-white font-semibold">Tabela Editável</span>
+              </div>
+
+              <div class="overflow-x-auto max-h-[620px] overflow-y-auto">
+                <table class="w-full text-left border-collapse text-[11px]">
+                  <thead class="sticky top-0 z-10">
+                    <tr class="bg-zinc-950 text-white font-bold text-[10px] uppercase">
+                      <th colspan="3" class="p-2 border-r border-white/10 bg-black/80">DADOS DO ITEM</th>
+                      
+                      <th colspan="3" class="p-2 text-center border-r border-white/10 bg-blue-950/60 text-blue-300">
+                        <input type="text" id="f1-nome" value="GOLD MÓVEIS" oninput="atualizarFornecedorNome('f1', this.value)" class="bg-transparent border-b border-blue-400/30 text-center font-bold text-blue-300 w-full focus:outline-none uppercase">
+                      </th>
+                      
+                      <th colspan="3" class="p-2 text-center border-r border-white/10 bg-indigo-950/60 text-indigo-300">
+                        <input type="text" id="f2-nome" value="LOJA ESCRITÓRIO" oninput="atualizarFornecedorNome('f2', this.value)" class="bg-transparent border-b border-indigo-400/30 text-center font-bold text-indigo-300 w-full focus:outline-none uppercase">
+                      </th>
+                      
+                      <th colspan="3" class="p-2 text-center bg-purple-950/60 text-purple-300">
+                        <input type="text" id="f3-nome" value="ESCRITÓRIO & CIA" oninput="atualizarFornecedorNome('f3', this.value)" class="bg-transparent border-b border-purple-400/30 text-center font-bold text-purple-300 w-full focus:outline-none uppercase">
+                      </th>
+                    </tr>
+
+                    <tr class="bg-black/90 text-slate-400 text-[9px] uppercase font-bold border-b border-white/10">
+                      <th class="p-1.5 border-r border-white/5 min-w-[140px]">Item</th>
+                      <th class="p-1.5 text-center border-r border-white/5 w-12">UN</th>
+                      <th class="p-1.5 text-center border-r border-white/10 w-12">QTD</th>
+
+                      <th class="p-1.5 text-right border-r border-white/5 min-w-[70px]">Unit (R$)</th>
+                      <th class="p-1.5 text-center border-r border-white/5 w-12">Desc %</th>
+                      <th class="p-1.5 text-right border-r border-white/10 bg-yellow-500/10 text-yellow-300 min-w-[80px]">Total (R$)</th>
+
+                      <th class="p-1.5 text-right border-r border-white/5 min-w-[70px]">Unit (R$)</th>
+                      <th class="p-1.5 text-center border-r border-white/5 w-12">Desc %</th>
+                      <th class="p-1.5 text-right border-r border-white/10 bg-yellow-500/10 text-yellow-300 min-w-[80px]">Total (R$)</th>
+
+                      <th class="p-1.5 text-right border-r border-white/5 min-w-[70px]">Unit (R$)</th>
+                      <th class="p-1.5 text-center border-r border-white/5 w-12">Desc %</th>
+                      <th class="p-1.5 text-right bg-yellow-500/10 text-yellow-300 min-w-[80px]">Total (R$)</th>
+                    </tr>
+                  </thead>
+
+                  <tbody id="tabela-corpo-itens" class="divide-y divide-white/5 text-slate-300">
+                  </tbody>
+
+                  <tfoot class="border-t-2 border-white/10">
+                    <tr class="bg-black/60 font-bold">
+                      <td colspan="3" class="p-2 text-right text-slate-400 border-r border-white/10">Subtotal Itens</td>
+                      <td colspan="3" id="subtotal-f1" class="p-2 text-right border-r border-white/10 text-white font-bold">R$ 0,00</td>
+                      <td colspan="3" id="subtotal-f2" class="p-2 text-right border-r border-white/10 text-white font-bold">R$ 0,00</td>
+                      <td colspan="3" id="subtotal-f3" class="p-2 text-right text-white font-bold">R$ 0,00</td>
+                    </tr>
+
+                    <tr class="bg-black/30 text-[10px]">
+                      <td colspan="3" class="p-1.5 text-right text-slate-400 border-r border-white/10">Desconto Extra (R$)</td>
+                      <td colspan="3" class="p-1.5 border-r border-white/10">
+                        <input type="number" id="desc-extra-f1" oninput="atualizarAdicional('descExtra', 'f1', this.value)" class="tbl-input tbl-input-num text-emerald-400 font-bold">
+                      </td>
+                      <td colspan="3" class="p-1.5 border-r border-white/10">
+                        <input type="number" id="desc-extra-f2" oninput="atualizarAdicional('descExtra', 'f2', this.value)" class="tbl-input tbl-input-num text-emerald-400 font-bold">
+                      </td>
+                      <td colspan="3" class="p-1.5">
+                        <input type="number" id="desc-extra-f3" oninput="atualizarAdicional('descExtra', 'f3', this.value)" class="tbl-input tbl-input-num text-emerald-400 font-bold">
+                      </td>
+                    </tr>
+
+                    <tr class="bg-black/30 text-[10px]">
+                      <td colspan="3" class="p-1.5 text-right text-slate-400 border-r border-white/10">Valor Frete (R$)</td>
+                      <td colspan="3" class="p-1.5 border-r border-white/10">
+                        <input type="number" id="frete-f1" oninput="atualizarAdicional('frete', 'f1', this.value)" class="tbl-input tbl-input-num">
+                      </td>
+                      <td colspan="3" class="p-1.5 border-r border-white/10">
+                        <input type="number" id="frete-f2" oninput="atualizarAdicional('frete', 'f2', this.value)" class="tbl-input tbl-input-num">
+                      </td>
+                      <td colspan="3" class="p-1.5">
+                        <input type="number" id="frete-f3" oninput="atualizarAdicional('frete', 'f3', this.value)" class="tbl-input tbl-input-num">
+                      </td>
+                    </tr>
+
+                    <tr class="bg-black/30 text-[10px]">
+                      <td colspan="3" class="p-1.5 text-right text-slate-400 border-r border-white/10">DIFAL 14% / Impostos (R$)</td>
+                      <td colspan="3" class="p-1.5 border-r border-white/10">
+                        <input type="number" id="difal-f1" oninput="atualizarAdicional('difal', 'f1', this.value)" class="tbl-input tbl-input-num text-red-400">
+                      </td>
+                      <td colspan="3" class="p-1.5 border-r border-white/10">
+                        <input type="number" id="difal-f2" oninput="atualizarAdicional('difal', 'f2', this.value)" class="tbl-input tbl-input-num text-red-400">
+                      </td>
+                      <td colspan="3" class="p-1.5">
+                        <input type="number" id="difal-f3" oninput="atualizarAdicional('difal', 'f3', this.value)" class="tbl-input tbl-input-num text-red-400">
+                      </td>
+                    </tr>
+
+                    <tr class="bg-gradient-to-r from-red-950/90 to-black font-black text-xs border-y-2 border-white/20">
+                      <td colspan="3" class="p-2.5 text-right uppercase text-white border-r border-white/10">VALOR FINAL PÓS-NEGOCIAÇÃO</td>
+                      <td colspan="3" id="total-final-f1" class="p-2.5 text-right font-extrabold border-r border-white/10">R$ 0,00</td>
+                      <td colspan="3" id="total-final-f2" class="p-2.5 text-right font-extrabold border-r border-white/10">R$ 0,00</td>
+                      <td colspan="3" id="total-final-f3" class="p-2.5 text-right font-extrabold">R$ 0,00</td>
+                    </tr>
+                  </tfoot>
+                </table>
+              </div>
+            </section>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- OUTRAS ABAS -->
+      <div id="conteudo-visao-pessoal" class="aba-conteudo space-y-4 hidden">
+        <h1 class="text-lg font-extrabold text-white">Visão Pessoal do Agente</h1>
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div class="glass-card p-4 rounded-2xl">
+            <span class="text-slate-400 text-xs block mb-1">Cotações Cadastradas</span>
+            <span class="text-2xl font-black text-white" id="stat-total-cotacoes">0</span>
+          </div>
+          <div class="glass-card p-4 rounded-2xl">
+            <span class="text-slate-400 text-xs block mb-1">Economia Média Estimada</span>
+            <span class="text-2xl font-black text-emerald-400">12.5%</span>
+          </div>
+          <div class="glass-card p-4 rounded-2xl">
+            <span class="text-slate-400 text-xs block mb-1">Status de Dados</span>
+            <span class="text-2xl font-black text-magnum-red">Local Storage</span>
+          </div>
+        </div>
+      </div>
+
+      <div id="conteudo-historico" class="aba-conteudo space-y-4 hidden">
+        <h1 class="text-lg font-extrabold text-white">Histórico de Cotações</h1>
+        <div class="glass-card p-4 rounded-2xl text-slate-300 text-xs space-y-2" id="lista-historico">
+        </div>
+      </div>
+
+      <div id="conteudo-formularios" class="aba-conteudo space-y-4 hidden">
+        <h1 class="text-lg font-extrabold text-white">Formulários de Requisição</h1>
+        <div class="glass-card p-4 rounded-2xl text-slate-400 text-xs">
+          Módulo de criação de formulários.
+        </div>
+      </div>
+
+    </main>
+  </div>
+
+  <script>
+    // ESTRUTURA DE DADOS INICIAL ATUALIZADA
+    const dadosIniciais = {
+      cotacaoAtivaId: "2026-0098",
+      webhookDriveUrl: "",
+      cotacoes: [
+        {
+          id: "2026-0098",
+          titulo: "Cotação #2026-0098 - Mobiliário",
+          setor: "Almoxarifado Central",
+          centroCusto: "CC-1020",
+          data: "2026-09-28",
+          enderecoEntrega: "Matriz Recife - Av. Mascarenhas de Morais, 1200",
+          fornecedores: { f1: "GOLD MÓVEIS", f2: "LOJA ESCRITÓRIO", f3: "ESCRITÓRIO & CIA" },
+          adicionais: {
+            descExtra: { f1: 100, f2: 0, f3: 0 },
+            frete: { f1: 150, f2: 0, f3: 120 },
+            difal: { f1: 0, f2: 678.47, f3: 0 }
+          },
+          arquivos: [
+            { id: 1, nome: "Proposta_GoldMoveis.pdf", status: "Lido (100%)" },
+            { id: 2, nome: "Orcamento_LojaEscritorio.pdf", status: "Lido (100%)" }
+          ],
+          itens: [
+            { id: 1, nome: "Armário de aço 4 portas", un: "UN", qtd: 2, f1: { unit: 760, desc: 5 }, f2: { unit: 824, desc: 0 }, f3: { unit: 800, desc: 2 } },
+            { id: 2, nome: "Cadeira ergonômica NR17", un: "UN", qtd: 5, f1: { unit: 420, desc: 0 }, f2: { unit: 395, desc: 3 }, f3: { unit: 410, desc: 0 } }
+          ]
+        },
+        {
+          id: "2026-0099",
+          titulo: "Cotação #2026-0099 - Pneus Frota",
+          setor: "Manutenção de Frota",
+          centroCusto: "CC-3050",
+          data: "2026-09-29",
+          enderecoEntrega: "Centro de Distribuição Cabo - Rod. BR-101 S/N",
+          fornecedores: { f1: "PNEUS NORDESTE", f2: "MAGNUM DIST", f3: "CENTRAL PNEUS" },
+          adicionais: {
+            descExtra: { f1: 0, f2: 250, f3: 0 },
+            frete: { f1: 300, f2: 0, f3: 150 },
+            difal: { f1: 0, f2: 0, f3: 0 }
+          },
+          arquivos: [
+            { id: 101, nome: "Cotacao_Pneus_2026.pdf", status: "Lido (100%)" }
+          ],
+          itens: [
+            { id: 10, nome: "Pneu 295/80R22.5 Carga", un: "UN", qtd: 12, f1: { unit: 1850, desc: 2 }, f2: { unit: 1790, desc: 0 }, f3: { unit: 1810, desc: 1 } }
+          ]
+        }
+      ]
+    };
+
+    let db = null;
+
+    function carregarBancoDados() {
+      const salvo = localStorage.getItem('magnum_cotacoes_db');
+      if (salvo) {
+        db = JSON.parse(salvo);
+      } else {
+        db = JSON.parse(JSON.stringify(dadosIniciais));
+        salvarNoStorage();
+      }
+    }
+
+    function salvarNoStorage() {
+      localStorage.setItem('magnum_cotacoes_db', JSON.stringify(db));
+    }
+
+    function resetarBancoDados() {
+      if (confirm("Deseja restaurar os dados de exemplo padrão?")) {
+        localStorage.removeItem('magnum_cotacoes_db');
+        carregarBancoDados();
+        renderizarTudo();
+      }
+    }
+
+    function getCotacaoAtiva() {
+      return db.cotacoes.find(c => c.id === db.cotacaoAtivaId) || db.cotacoes[0];
+    }
+
+    function renderizarSeletorCotacoes() {
+      const seletor = document.getElementById('seletor-cotacao');
+      seletor.innerHTML = '';
+      db.cotacoes.forEach(c => {
+        const option = document.createElement('option');
+        option.value = c.id;
+        option.innerText = c.titulo;
+        if (c.id === db.cotacaoAtivaId) option.selected = true;
+        seletor.appendChild(option);
+      });
+      document.getElementById('stat-total-cotacoes').innerText = db.cotacoes.length;
+    }
+
+    function selecionarCotacao(id) {
+      db.cotacaoAtivaId = id;
+      salvarNoStorage();
+      renderizarTudo();
+    }
+
+    // MODAL DRIVE & WEBHOOK
+    function abrirModalDrive() {
+      document.getElementById('input-webhook-url').value = db.webhookDriveUrl || '';
+      document.getElementById('modal-config-drive').classList.remove('hidden');
+    }
+
+    function fecharModalDrive() {
+      document.getElementById('modal-config-drive').classList.add('hidden');
+    }
+
+    function salvarWebhookUrl() {
+      const url = document.getElementById('input-webhook-url').value.trim();
+      db.webhookDriveUrl = url;
+      salvarNoStorage();
+      fecharModalDrive();
+      alert('URL do Webhook do Google Drive gravada com sucesso!');
+    }
+
+    async function enviarParaDrive() {
+      const cot = getCotacaoAtiva();
+      if (!db.webhookDriveUrl) {
+        if (confirm("Nenhum Webhook do Google Drive foi configurado. Deseja configurar agora?")) {
+          abrirModalDrive();
+        }
+        return;
+      }
+
+      try {
+        const resposta = await fetch(db.webhookDriveUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            evento: 'NOVA_COTACAO',
+            dataEnvio: new Date().toISOString(),
+            cotacao: cot
+          })
+        });
+
+        alert(`Sucesso! Os dados da cotação "${cot.titulo}" foram enviados para o Webhook do Google Drive.`);
+      } catch (err) {
+        console.error(err);
+        alert("A requisição foi disparada para o Webhook! (Nota: Em modo de teste de navegadores, verifique as permissões de CORS se necessário).");
+      }
+    }
+
+    // EXPORTAÇÃO IMPRESSÃO / PDF
+    function exportarRelatorioPDF() {
+      window.print();
+    }
+
+    // MODAL DA NOVA COTAÇÃO
+    function abrirModalNovaCotacao() {
+      const modal = document.getElementById('modal-nova-cotacao');
+      const input = document.getElementById('input-nome-cotacao');
+      const hoje = new Date().toISOString().split('T')[0];
+      document.getElementById('input-data-cotacao').value = hoje;
+
+      input.value = `Cotação #${Math.floor(1000 + Math.random() * 9000)}`;
+      modal.classList.remove('hidden');
+      input.focus();
+    }
+
+    function fecharModalNovaCotacao() {
+      document.getElementById('modal-nova-cotacao').classList.add('hidden');
+    }
+
+    function confirmarNovaCotacao() {
+      const input = document.getElementById('input-nome-cotacao');
+      const nomeDigitado = input.value.trim();
+
+      if (!nomeDigitado) {
+        alert('Por favor, informe um nome para a cotação.');
+        return;
+      }
+
+      const novoid = '2026-' + Math.floor(1000 + Math.random() * 9000);
+      const nova = {
+        id: novoid,
+        titulo: nomeDigitado,
+        setor: document.getElementById('input-setor-cotacao').value.trim() || 'Almoxarifado',
+        centroCusto: document.getElementById('input-ccusto-cotacao').value.trim() || 'CC-1000',
+        data: document.getElementById('input-data-cotacao').value || new Date().toISOString().split('T')[0],
+        enderecoEntrega: document.getElementById('input-endereco-cotacao').value.trim() || 'Matriz Recife',
+        fornecedores: { f1: "FORNECEDOR A", f2: "FORNECEDOR B", f3: "FORNECEDOR C" },
+        adicionais: {
+          descExtra: { f1: 0, f2: 0, f3: 0 },
+          frete: { f1: 0, f2: 0, f3: 0 },
+          difal: { f1: 0, f2: 0, f3: 0 }
+        },
+        arquivos: [],
+        itens: [
+          { id: Date.now(), nome: "Novo Item Exemplo", un: "UN", qtd: 1, f1: { unit: 100, desc: 0 }, f2: { unit: 120, desc: 0 }, f3: { unit: 110, desc: 0 } }
+        ]
+      };
+
+      db.cotacoes.push(nova);
+      db.cotacaoAtivaId = novoid;
+      salvarNoStorage();
+      fecharModalNovaCotacao();
+      renderizarTudo();
+    }
+
+    function excluirCotacaoAtual() {
+      if (db.cotacoes.length <= 1) {
+        alert("Você precisa manter ao menos 1 cotação ativa.");
+        return;
+      }
+      if (confirm(`Excluir a cotação "${getCotacaoAtiva().titulo}"?`)) {
+        db.cotacoes = db.cotacoes.filter(c => c.id !== db.cotacaoAtivaId);
+        db.cotacaoAtivaId = db.cotacoes[0].id;
+        salvarNoStorage();
+        renderizarTudo();
+      }
+    }
+
+    function atualizarDadosCotacao(campo, valor) {
+      const cot = getCotacaoAtiva();
+      cot[campo] = valor;
+      salvarNoStorage();
+      if (campo === 'titulo') renderizarSeletorCotacoes();
+    }
+
+    function atualizarFornecedorNome(key, valor) {
+      const cot = getCotacaoAtiva();
+      cot.fornecedores[key] = valor;
+      salvarNoStorage();
+      recalcularTabela();
+    }
+
+    function atualizarAdicional(tipo, fKey, valor) {
+      const cot = getCotacaoAtiva();
+      cot.adicionais[tipo][fKey] = parseFloat(valor) || 0;
+      salvarNoStorage();
+      recalcularTabela();
+    }
+
+    function renderizarArquivos() {
+      const cot = getCotacaoAtiva();
+      const container = document.getElementById('lista-arquivos');
+      const labelQtd = document.getElementById('qtd-arquivos-label');
+      
+      labelQtd.innerText = `${cot.arquivos.length} ${cot.arquivos.length === 1 ? 'Arquivo' : 'Arquivos'}`;
+      container.innerHTML = '';
+
+      if (cot.arquivos.length === 0) {
+        container.innerHTML = `<div class="text-slate-500 text-[10px] text-center py-2">Nenhum documento anexado.</div>`;
+        return;
+      }
+
+      cot.arquivos.forEach((arq, idx) => {
+        const div = document.createElement('div');
+        div.className = 'bg-white/5 p-2 rounded-xl border border-white/5 flex items-center justify-between group hover:border-white/20 transition';
+        div.innerHTML = `
+          <div class="flex items-center space-x-2 truncate">
+            <i class="fa-solid fa-file-pdf text-red-500 text-sm flex-shrink-0"></i>
+            <span class="text-white font-medium text-[11px] truncate">${arq.nome}</span>
+          </div>
+          <div class="flex items-center space-x-2 flex-shrink-0">
+            <span class="text-[9px] text-emerald-400 font-bold bg-emerald-500/10 px-2 py-0.5 rounded">${arq.status}</span>
+            <button onclick="removerArquivo(${idx})" class="text-slate-500 hover:text-red-400 p-1 transition" title="Remover Arquivo">
+              <i class="fa-solid fa-trash-can text-xs"></i>
+            </button>
+          </div>
+        `;
+        container.appendChild(div);
+      });
+    }
+
+    function removerArquivo(index) {
+      const cot = getCotacaoAtiva();
+      cot.arquivos.splice(index, 1);
+      salvarNoStorage();
+      renderizarArquivos();
+    }
+
+    function adicionarArquivoUpload(event) {
+      const file = event.target.files[0];
+      if (file) {
+        const cot = getCotacaoAtiva();
+        cot.arquivos.push({ id: Date.now(), nome: file.name, status: "Lido (100%)" });
+        salvarNoStorage();
+        renderizarArquivos();
+        event.target.value = '';
+      }
+    }
+
+    function renderizarTabela() {
+      const cot = getCotacaoAtiva();
+      
+      document.getElementById('cotacao-titulo').value = cot.titulo || '';
+      document.getElementById('cotacao-setor').value = cot.setor || '';
+      document.getElementById('cotacao-ccusto').value = cot.centroCusto || '';
+      document.getElementById('cotacao-data').value = cot.data || '';
+      document.getElementById('cotacao-endereco').value = cot.enderecoEntrega || '';
+
+      document.getElementById('f1-nome').value = cot.fornecedores.f1;
+      document.getElementById('f2-nome').value = cot.fornecedores.f2;
+      document.getElementById('f3-nome').value = cot.fornecedores.f3;
+
+      document.getElementById('desc-extra-f1').value = cot.adicionais.descExtra.f1;
+      document.getElementById('desc-extra-f2').value = cot.adicionais.descExtra.f2;
+      document.getElementById('desc-extra-f3').value = cot.adicionais.descExtra.f3;
+
+      document.getElementById('frete-f1').value = cot.adicionais.frete.f1;
+      document.getElementById('frete-f2').value = cot.adicionais.frete.f2;
+      document.getElementById('frete-f3').value = cot.adicionais.frete.f3;
+
+      document.getElementById('difal-f1').value = cot.adicionais.difal.f1;
+      document.getElementById('difal-f2').value = cot.adicionais.difal.f2;
+      document.getElementById('difal-f3').value = cot.adicionais.difal.f3;
+
+      const tbody = document.getElementById('tabela-corpo-itens');
+      tbody.innerHTML = '';
+
+      cot.itens.forEach((item, index) => {
+        const tr = document.createElement('tr');
+        tr.className = 'hover:bg-white/[0.02] transition';
+        tr.innerHTML = `
+          <td class="p-1.5 border-r border-white/5 flex items-center space-x-1">
+            <button onclick="removerLinhaItem(${index})" class="text-slate-600 hover:text-red-400 px-1" title="Remover Item">
+              <i class="fa-solid fa-xmark text-xs"></i>
+            </button>
+            <input type="text" value="${item.nome}" oninput="atualizarItem(${index}, 'nome', this.value)" class="tbl-input font-medium text-white">
+          </td>
+          <td class="p-1.5 border-r border-white/5">
+            <input type="text" value="${item.un}" oninput="atualizarItem(${index}, 'un', this.value)" class="tbl-input text-center uppercase">
+          </td>
+          <td class="p-1.5 border-r border-white/10">
+            <input type="number" value="${item.qtd}" oninput="atualizarItem(${index}, 'qtd', this.value)" class="tbl-input tbl-input-num font-bold">
+          </td>
+
+          <td class="p-1.5 border-r border-white/5">
+            <input type="number" value="${item.f1.unit}" oninput="atualizarSubitem(${index}, 'f1', 'unit', this.value)" class="tbl-input tbl-input-num">
+          </td>
+          <td class="p-1.5 border-r border-white/5">
+            <input type="number" value="${item.f1.desc}" oninput="atualizarSubitem(${index}, 'f1', 'desc', this.value)" class="tbl-input tbl-input-num">
+          </td>
+          <td class="p-1.5 border-r border-white/10 text-right font-bold text-slate-200" id="item-${index}-f1-total">0,00</td>
+
+          <td class="p-1.5 border-r border-white/5">
+            <input type="number" value="${item.f2.unit}" oninput="atualizarSubitem(${index}, 'f2', 'unit', this.value)" class="tbl-input tbl-input-num">
+          </td>
+          <td class="p-1.5 border-r border-white/5">
+            <input type="number" value="${item.f2.desc}" oninput="atualizarSubitem(${index}, 'f2', 'desc', this.value)" class="tbl-input tbl-input-num">
+          </td>
+          <td class="p-1.5 border-r border-white/10 text-right font-bold text-slate-200" id="item-${index}-f2-total">0,00</td>
+
+          <td class="p-1.5 border-r border-white/5">
+            <input type="number" value="${item.f3.unit}" oninput="atualizarSubitem(${index}, 'f3', 'unit', this.value)" class="tbl-input tbl-input-num">
+          </td>
+          <td class="p-1.5 border-r border-white/5">
+            <input type="number" value="${item.f3.desc}" oninput="atualizarSubitem(${index}, 'f3', 'desc', this.value)" class="tbl-input tbl-input-num">
+          </td>
+          <td class="p-1.5 text-right font-bold text-slate-200" id="item-${index}-f3-total">0,00</td>
+        `;
+        tbody.appendChild(tr);
+      });
+
+      recalcularTabela();
+    }
+
+    function atualizarItem(index, campo, valor) {
+      const cot = getCotacaoAtiva();
+      cot.itens[index][campo] = campo === 'qtd' ? (parseFloat(valor) || 0) : valor;
+      salvarNoStorage();
+      recalcularTabela();
+    }
+
+    function atualizarSubitem(index, fornecedor, campo, valor) {
+      const cot = getCotacaoAtiva();
+      cot.itens[index][fornecedor][campo] = parseFloat(valor) || 0;
+      salvarNoStorage();
+      recalcularTabela();
+    }
+
+    function adicionarLinhaItem() {
+      const cot = getCotacaoAtiva();
+      cot.itens.push({
+        id: Date.now(),
+        nome: "Novo Item Exemplo",
+        un: "UN",
+        qtd: 1,
+        f1: { unit: 0, desc: 0 },
+        f2: { unit: 0, desc: 0 },
+        f3: { unit: 0, desc: 0 }
+      });
+      salvarNoStorage();
+      renderizarTabela();
+    }
+
+    function removerLinhaItem(index) {
+      const cot = getCotacaoAtiva();
+      if (cot.itens.length > 1) {
+        cot.itens.splice(index, 1);
+        salvarNoStorage();
+        renderizarTabela();
+      } else {
+        alert('A tabela precisa conter ao menos 1 item.');
+      }
+    }
+
+    function recalcularTabela() {
+      const cot = getCotacaoAtiva();
+      let subtotalF1 = 0, subtotalF2 = 0, subtotalF3 = 0;
+
+      cot.itens.forEach((item, index) => {
+        const qtd = item.qtd || 0;
+
+        const totF1 = (item.f1.unit * qtd) * (1 - (item.f1.desc / 100));
+        const totF2 = (item.f2.unit * qtd) * (1 - (item.f2.desc / 100));
+        const totF3 = (item.f3.unit * qtd) * (1 - (item.f3.desc / 100));
+
+        subtotalF1 += totF1;
+        subtotalF2 += totF2;
+        subtotalF3 += totF3;
+
+        const elF1 = document.getElementById(`item-${index}-f1-total`);
+        const elF2 = document.getElementById(`item-${index}-f2-total`);
+        const elF3 = document.getElementById(`item-${index}-f3-total`);
+
+        if (elF1) elF1.innerText = formatarMoeda(totF1);
+        if (elF2) elF2.innerText = formatarMoeda(totF2);
+        if (elF3) elF3.innerText = formatarMoeda(totF3);
+
+        const minVal = Math.min(totF1, totF2, totF3);
+        [elF1, elF2, elF3].forEach(el => el && el.classList.remove('winner-cell'));
+
+        if (minVal > 0) {
+          if (totF1 === minVal && elF1) elF1.classList.add('winner-cell');
+          if (totF2 === minVal && elF2) elF2.classList.add('winner-cell');
+          if (totF3 === minVal && elF3) elF3.classList.add('winner-cell');
+        }
+      });
+
+      document.getElementById('subtotal-f1').innerText = 'R$ ' + formatarMoeda(subtotalF1);
+      document.getElementById('subtotal-f2').innerText = 'R$ ' + formatarMoeda(subtotalF2);
+      document.getElementById('subtotal-f3').innerText = 'R$ ' + formatarMoeda(subtotalF3);
+
+      const finalF1 = subtotalF1 - cot.adicionais.descExtra.f1 + cot.adicionais.frete.f1 + cot.adicionais.difal.f1;
+      const finalF2 = subtotalF2 - cot.adicionais.descExtra.f2 + cot.adicionais.frete.f2 + cot.adicionais.difal.f2;
+      const finalF3 = subtotalF3 - cot.adicionais.descExtra.f3 + cot.adicionais.frete.f3 + cot.adicionais.difal.f3;
+
+      const elFinF1 = document.getElementById('total-final-f1');
+      const elFinF2 = document.getElementById('total-final-f2');
+      const elFinF3 = document.getElementById('total-final-f3');
+
+      elFinF1.innerText = 'R$ ' + formatarMoeda(finalF1);
+      elFinF2.innerText = 'R$ ' + formatarMoeda(finalF2);
+      elFinF3.innerText = 'R$ ' + formatarMoeda(finalF3);
+
+      const minFinal = Math.min(finalF1, finalF2, finalF3);
+      [elFinF1, elFinF2, elFinF3].forEach(el => {
+        el.classList.remove('text-emerald-400', 'bg-emerald-950/50');
+        el.classList.add('text-white');
+      });
+
+      let nomeVencedor = '';
+      if (minFinal === finalF1) {
+        elFinF1.classList.add('text-emerald-400', 'bg-emerald-950/50');
+        nomeVencedor = cot.fornecedores.f1;
+      } else if (minFinal === finalF2) {
+        elFinF2.classList.add('text-emerald-400', 'bg-emerald-950/50');
+        nomeVencedor = cot.fornecedores.f2;
+      } else {
+        elFinF3.classList.add('text-emerald-400', 'bg-emerald-950/50');
+        nomeVencedor = cot.fornecedores.f3;
+      }
+
+      document.getElementById('ai-insight-text').innerHTML = `
+        A proposta da <strong class="text-white">${nomeVencedor}</strong> é a mais vantajosa no momento para esta cotação, com total de <strong class="text-emerald-400">R$ ${formatarMoeda(minFinal)}</strong>.
+      `;
+    }
+
+    function renderizarHistorico() {
+      const container = document.getElementById('lista-historico');
+      container.innerHTML = '';
+      db.cotacoes.forEach(c => {
+        const div = document.createElement('div');
+        div.className = 'p-3 bg-white/5 rounded-xl border border-white/10 flex justify-between items-center';
+        div.innerHTML = `
+          <div>
+            <strong class="text-white block text-xs">${c.titulo}</strong>
+            <span class="text-[10px] text-slate-400">${c.setor || 'N/A'} • ${c.centroCusto || 'N/A'} • ${c.itens.length} itens</span>
+          </div>
+          <button onclick="selecionarCotacao('${c.id}'); trocarAba('cotacoes');" class="bg-magnum-red/20 text-magnum-red px-2.5 py-1 rounded text-[10px] font-bold">Abrir</button>
+        `;
+        container.appendChild(div);
+      });
+    }
+
+    function formatarMoeda(val) {
+      return val.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+
+    function trocarAba(nomeAba) {
+      document.querySelectorAll('.aba-conteudo').forEach(el => el.classList.add('hidden'));
+      document.querySelectorAll('.side-tab-btn').forEach(btn => {
+        btn.classList.remove('side-tab-active');
+        btn.classList.add('side-tab-inactive');
+      });
+
+      const conteudoAtivo = document.getElementById('conteudo-' + nomeAba);
+      if (conteudoAtivo) conteudoAtivo.classList.remove('hidden');
+
+      const botaoAtivo = document.getElementById('tab-' + nomeAba);
+      if (botaoAtivo) {
+        botaoAtivo.classList.remove('side-tab-inactive');
+        botaoAtivo.classList.add('side-tab-active');
+      }
+
+      if (nomeAba === 'historico') renderizarHistorico();
+    }
+
+    function togglePerfilDropdown(event) {
+      event.stopPropagation();
+      document.getElementById('perfil-dropdown').classList.toggle('hidden');
+    }
+
+    function fecharDropdownPeloClickFora(event) {
+      const dropdown = document.getElementById('perfil-dropdown');
+      if (dropdown && !dropdown.contains(event.target)) {
+        dropdown.classList.add('hidden');
+      }
+    }
+
+    function renderizarTudo() {
+      renderizarSeletorCotacoes();
+      renderizarArquivos();
+      renderizarTabela();
+    }
+
+    window.onload = function() {
+      carregarBancoDados();
+      renderizarTudo();
+    };
+  </script>
+</body>
+</html>
