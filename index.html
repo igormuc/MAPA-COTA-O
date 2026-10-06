@@ -101,7 +101,8 @@
       margin: 0;
     }
     input[type=number] {
-      -moz-appearance: textfield;
+      
+      : textfield;
     }
 
     .winner-cell {
@@ -292,15 +293,17 @@
       <div class="flex items-center space-x-3">
         <div class="relative">
           <button onclick="togglePerfilDropdown(event)" class="w-8 h-8 rounded-lg bg-gradient-to-tr from-magnum-red to-red-500 p-[1px] focus:outline-none">
-            <div class="w-full h-full bg-zinc-900 rounded-[7px] flex items-center justify-center text-white font-black text-[10px]">
-              IU
+            <div id="usuario-iniciais" class="w-full h-full bg-zinc-900 rounded-[7px] flex items-center justify-center text-white font-black text-[10px]">
+              --
             </div>
           </button>
 
           <div id="perfil-dropdown" class="hidden absolute right-0 IU-2 w-56 glass-card rounded-xl border border-white/10 p-2 shadow-2xl z-50">
             <div class="px-3 py-2 border-b border-white/10 mb-1">
-              <span class="text-white font-bold block text-xs">Magnum Tires (Prototipagem)</span>
-              <span class="text-[10px] text-slate-400 block truncate">compras@magnumtires.com.br</span>
+              <span id="perfil-nome" class="text-white font-bold block text-xs"></span>
+              <span id="perfil-email" class="text-[10px] text-slate-400 block truncate"></span>
+              <span id="perfil-role" class="text-[10px] text-slate-400 block"></span>
+              <span id="perfil-organizacao" class="text-[10px] text-slate-400 block"></span>
             </div>
             <button onclick="abrirModalDrive()" class="w-full text-left px-2.5 py-1.5 rounded-lg text-emerald-400 hover:bg-emerald-500/10 flex items-center space-x-2 text-[11px]">
               <i class="fa-brands fa-google-drive"></i>
@@ -309,6 +312,10 @@
             <button onclick="resetarBancoDados()" class="w-full text-left px-2.5 py-1.5 rounded-lg text-red-400 hover:bg-red-500/10 flex items-center space-x-2 text-[11px]">
               <i class="fa-solid fa-rotate-right"></i>
               <span>Restaurar Dados Iniciais</span>
+            </button>
+            <button onclick="sair()" class="w-full text-left px-2.5 py-1.5 rounded-lg text-red-400 hover:bg-red-500/10 flex items-center space-x-2 text-[11px]">
+              <i class="fa-solid fa-right-from-bracket"></i>
+              <span>Sair</span>
             </button>
           </div>
         </div>
@@ -1108,10 +1115,25 @@
       renderizarTabela();
     }
 
-    window.onload = function() {
-      carregarBancoDados();
-      renderizarTudo();
+    window.onload = async function() {
+      try {
+        const autenticado = await carregarUsuarioAutenticado();
+
+        if (!autenticado) {
+          console.warn('Não há sessão autenticada.');
+          return;
+        }
+
+        carregarBancoDados();
+        renderizarTudo();
+      } catch (error) {
+        console.error('Falha ao carregar sessão ou dados do perfil:', error);
+        alert('Não foi possível carregar os dados da sua sessão.');
+      }
     };
   </script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="supabase-config.js"></script>
+  <script src="app.js"></script>
 </body>
 </html>

@@ -1,54 +1,89 @@
-// Array para armazenar todos os usuários ativos no seu sistema
-let usuariosDoSistema = [
-  { id: 'usr-1', nome: 'Magnum Tires Admin', email: 'admin@magnumtires.com.br', iniciais: 'MT', cargo: 'Administrador' },
-  { id: 'usr-2', nome: 'Isabela Oliveira', email: 'isabela@magnumtires.com.br', iniciais: 'I', cargo: 'Comprador' }
-];
+let usuarioAtual = null;
 
-let usuarioLogadoId = 'usr-1';
+async function carregarUsuarioAutenticado() {
+  const { data: { session }, error: sessionError } =
+    await supabaseClient.auth.getSession();
 
-// Função para Selecionar/Alternar Usuário de Trabalho
-function selecionarUsuario(id) {
-  const usuario = usuariosDoSistema.find(u => u.id === id);
-  if (!usuario) return;
+  if (sessionError) throw sessionError;
 
-  usuarioLogadoId = id;
-
-  // Atualiza as variáveis globais da sua plataforma se houver
-  window.usuarioAtual = usuario;
-
-  // Notifica no console e atualiza a interface
-  console.log(`Sessão alterada para: ${usuario.nome} (${usuario.cargo})`);
-  
-  // Dispara a atualização dos seus dados/tabelas para o novo usuário
-  if (typeof recarregarDadosPlataforma === 'function') {
-    recarregarDadosPlataforma(usuario);
+  if (!session) {
+    usuarioAtual = null;
+    window.usuarioAtual = null;
+    return false;
   }
-  
-  atualizarIndicadorUsuarioAtivo();
-}
 
-// Função para Adicionar um Novo Usuário de Trabalho via JS
-function adicionarNovoUsuario(nome, email, iniciais, cargo) {
-  const novoUsuario = {
-    id: 'usr-' + Date.now(),
-    nome: nome,
-    email: email,
-    iniciais: iniciais.toUpperCase(),
-    cargo: cargo || 'Operador'
+  const authUser = session.user;
+
+  const { data: profile, error: profileError } = await supabaseClient
+    .from('profiles')
+    .select('id, display_name, initials')
+    .eq('id', authUser.id)
+    .single();
+
+  if (profileError) throw profileError;
+
+  const { data: membership, error: membershipError } = await supabaseClient
+    .from('organization_members')
+    .select('organization_id, user_id, role, status')
+    .eq('user_id', authUser.id)
+    .eq('status', 'active')
+    .single();
+
+  if (membershipError) throw membershipError;
+
+  const { data: organization, error: organizationError } = await supabaseClient
+    .from('organizations')
+    .select('id, name')
+    .eq('id', membership.organization_id)
+    .single();
+
+  if (organizationError) throw organizationError;
+
+  usuarioAtual = {
+    id: authUser.id,
+    nome: profile.display_name,
+    iniciais: profile.initials,
+    email: authUser.email,
+    role: membership.role,
+    status: membership.status,
+    organizationId: organization.id,
+    organizationName: organization.name
   };
 
-  usuariosDoSistema.push(novoUsuario);
-  renderizarOpcoesDeUsuarios();
-  return novoUsuario;
+  window.usuarioAtual = usuarioAtual;
+  atualizarIndicadorUsuarioAtivo();
+
+  return true;
 }
 
-// Atualiza o elemento visual do topo para mostrar qual usuário está trabalhando agora
 function atualizarIndicadorUsuarioAtivo() {
-  const ativo = usuariosDoSistema.find(u => u.id === usuarioLogadoId);
-  const badgeEl = document.getElementById('badge-usuario-ativo');
-  
-  if (badgeEl && ativo) {
-    badgeEl.innerText = ativo.iniciais;
-    badgeEl.title = `Trabalhando como: ${ativo.nome} (${ativo.cargo})`;
+  if (!usuarioAtual) return;
+
+  const iniciaisEl = document.getElementById('usuario-iniciais');
+  const nomeEl = document.getElementById('perfil-nome');
+  const emailEl = document.getElementById('perfil-email');
+  const roleEl = document.getElementById('perfil-role');
+  const organizacaoEl = document.getElementById('perfil-organizacao');
+
+  if (iniciaisEl) iniciaisEl.textContent = usuarioAtual.iniciais || '';
+  if (nomeEl) nomeEl.textContent = usuarioAtual.nome || '';
+  if (emailEl) emailEl.textContent = usuarioAtual.email || '';
+  if (roleEl) roleEl.textContent = usuarioAtual.role || '';
+  if (organizacaoEl) {
+    organizacaoEl.textContent = usuarioAtual.organizationName || '';
   }
+}
+
+async function sair() {
+  const { error } = await supabaseClient.auth.signOut();
+
+  if (error) {
+    console.error('Falha ao encerrar a sessão:', error);
+    alert('Não foi possível sair. Tente novamente.');
+    return;
+  }
+
+  usuarioAtual = null;
+  window.usuarioAtual = null;
+  window.location.reload();
 }
